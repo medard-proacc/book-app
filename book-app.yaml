@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: book-app
+  namespace: book
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: book-app
+  template:
+    metadata:
+      labels:
+        app: book-app
+    spec:
+      containers:
+        - image: gcr.io/google-samples/gb-frontend:v5
+          name: book-app
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: book-app
+  namespace: book
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: book-app
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    haproxy.router.openshift.io/timeout: 5m
+  labels:
+    app: book-app
+  name: book-app
+  namespace: book
+spec:
+  host: book-app.apps-crc.testing
+  port:
+    targetPort: https
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: reencrypt
+  to:
+    kind: Service
+    name: book-app
+    weight: 100
+  wildcardPolicy: None
